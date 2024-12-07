@@ -1,3 +1,5 @@
+from tqdm import tqdm 
+
 def get_next_grid(grid, player_pos):
     """ Returns a new grid and starting pos after running a step, None if invalid state
     """
@@ -61,11 +63,36 @@ def s_to_grid(s):
 
 with open('input.txt', 'r') as f:
     s = f.read()
+
     
 g, starting_pos = s_to_grid(s)
-visited = [starting_pos]
-next_grid, next_pos = get_next_grid(g, starting_pos)
-while next_grid:
-    visited.append(next_pos)
-    next_grid, next_pos = get_next_grid(next_grid, next_pos)
-print(len(set(visited)))
+
+def get_steps(g, starting_pos):
+    visited = [starting_pos]
+    last_positions = [(starting_pos, g[starting_pos[1]][starting_pos[0]])]
+    next_grid, next_pos = get_next_grid(g, starting_pos)
+    while next_grid:
+        visited.append(next_pos)
+        if (next_pos, g[next_pos[1]][next_pos[0]]) in last_positions:
+            return None
+        else:
+            last_positions.append((next_pos, g[next_pos[1]][next_pos[0]]))
+        next_grid, next_pos = get_next_grid(next_grid, next_pos)
+    return visited
+
+# p1
+steps = get_steps(g, starting_pos)
+print(len(set(steps)))
+
+# p2 brute force
+count_loops = 0
+for y in range(len(g)):
+    print(f'{y}/{len(g)}')
+    for x in tqdm(range(len(g[0]))):
+        g, starting_pos = s_to_grid(s)
+        if (x, y) != starting_pos and (x, y) in steps and g[y][x] == '.':
+            g[y][x] = '#'
+            #print(nu_g)
+            if get_steps(g, starting_pos) is None:
+                count_loops += 1
+print(count_loops)
