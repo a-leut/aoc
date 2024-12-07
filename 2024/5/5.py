@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from collections import defaultdict, deque
 
 def get_ordering_and_updates(s):
     s1, s2 = s.split('\n\n')
@@ -22,77 +23,56 @@ def get_middle_sum_valid(pairs, updates):
             total += int(u[len(u)//2])
     return total
 
-def reorder_update(u, pairs):
-    # we assume all can be reordered
-    #pairs_that_order = [p for p in pairs if p[0] in u and p[1] in u]
-    ordered_values = []
-    for p in pairs:
-        print(p)
-        if len(ordered_values) == len(u):
-            break
-        if len(ordered_values) == 0:
-            ordered_values = p
-        else:
-            if (p[0] in ordered_values and p[1] in ordered_values) \
-            or (p[0] not in ordered_values and p[1] not in ordered_values):
-                print('skip')
-                continue
-            elif p[0] in ordered_values and p[1] not in ordered_values:
-                print('found p0')
-                i = ordered_values.index(p[0])
-                ordered_values.insert(i + 1, p[1])
-            elif p[1] in ordered_values and p[0] not in ordered_values:
-                print('found p1')
-                i = ordered_values.index(p[1])
-                ordered_values.insert(i, p[0])
-            print(ordered_values)
-    return ordered_values
+def kahns_algorithm(graph_dict):
+    # get list of nodes
+    all_nodes = set(graph_dict.keys())
+    for nbrs in graph_dict.values():
+        all_nodes.update(nbrs)
+    # compute degree
+    in_degree = {node: 0 for node in all_nodes}
+    for node, neighbors in graph_dict.items():
+        for nbr in neighbors:
+            in_degree[nbr] = in_degree.get(nbr, 0) + 1
+    # sort with khans algo
+    queue = [node for node in all_nodes if in_degree[node] == 0]
+    topo_order = []
+    while queue:
+        current = queue.pop()
+        topo_order.append(current)
+        for nxt in graph_dict.get(current, []):
+            in_degree[nxt] -= 1
+            if in_degree[nxt] == 0:
+                queue.append(nxt)
+    return topo_order
 
-            
+def reorder_update(u, topo_order):
+    reordered = []
+    for i in topo_order:
+        if i in u:
+            reordered.append(i)
+    return reordered            
 
 def get_middle_sum_invalid_reorder(pairs, updates):
     total = 0
     for u in updates:
-        # we hope the list has odd number of elements
         if not is_valid_update(u, pairs):
-            nu = reorder_update(u, pairs)
-            print(nu)
+            g = {}
+            for p in pairs:
+                if p[0] in u and p[1] in u:
+                    if p[0] in g:
+                        g[p[0]].append(p[1])
+                    else:
+                        g[p[0]] = [p[1]]
+            for node in u:
+                if node not in g:
+                    g[node] = []
+            topo_order = kahns_algorithm(g)
+            nu = reorder_update(u, topo_order)
             total += int(nu[len(nu)//2])
     return total
 
 with open('input.txt', 'r') as f:
     s = f.read()
-
-# pairs, updates = get_ordering_and_updates(s)
-# s = get_middle_sum_valid(pairs, updates)
-# print(s)
-
-s = '''
-47|53
-97|13
-97|61
-97|47
-75|29
-61|13
-75|53
-29|13
-97|29
-53|29
-61|53
-97|53
-61|29
-47|13
-75|47
-97|75
-47|61
-75|61
-47|29
-75|13
-53|13
-
-75,97,47,61,53
-'''
-
 pairs, updates = get_ordering_and_updates(s)
-n = get_middle_sum_invalid_reorder(pairs, updates)
-print(n)
+print(get_middle_sum_valid(pairs, updates))
+print(get_middle_sum_invalid_reorder(pairs, updates))
